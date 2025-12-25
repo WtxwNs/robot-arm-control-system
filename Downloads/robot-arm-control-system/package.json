@@ -1,0 +1,39 @@
+{
+  "name": "robot-arm-control-system",
+  "version": "1.0.0",
+  "description": "基于开放式上位机的协作机器人智能书写控制系统",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "nodemon backend/server.js",
+    "build": "npm install",
+    "test": "node test/test.js"
+  },
+  "keywords": [
+    "robot",
+    "websocket",
+    "ethercat",
+    "nodejs",
+    "robotics",
+    "control"
+  ],
+  "author": "SEU Future Technology College",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.7.2",
+    "ethercat": "^1.3.0",
+    "mathjs": "^11.11.0",
+    "cors": "^2.8.5",
+    "winston": "^3.10.0",
+    "config": "^3.3.9",
+    "pid-controller": "^1.0.0",
+    "serialport": "^12.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

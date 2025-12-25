@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>协作机器人智能书写控制系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部标题栏 -->
+        <header class="header">
+            <div class="header-left">
+                <i class="fas fa-robot"></i>
+                <h1>协作机器人智能书写控制系统</h1>
+                <span class="version">v1.0.0</span>
+            </div>
+            <div class="header-right">
+                <div class="status-indicator" id="robot-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">机器人离线</span>
+                </div>
+                <div class="status-indicator" id="safety-status">
+                    <span class="status-dot"></span>
+                    <span class="status-text">安全系统正常</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 左侧控制面板 -->
+            <div class="control-panel">
+                <!-- 快速操作区 -->
+                <section class="quick-actions">
+                    <h3><i class="fas fa-bolt"></i> 快速操作</h3>
+                    <div class="action-buttons">
+                        <button id="btn-home" class="btn btn-primary">
+                            <i class="fas fa-home"></i> 一键复位
+                        </button>
+                        <button id="btn-emergency-stop" class="btn btn-danger">
+                            <i class="fas fa-stop-circle"></i> 紧急停止
+                        </button>
+                        <button id="btn-safety-reset" class="btn btn-warning">
+                            <i class="fas fa-shield-alt"></i> 安全复位
+                        </button>
+                    </div>
+                </section>
+
+                <!-- 关节控制区 -->
+                <section class="joint-control">
+                    <h3><i class="fas fa-cogs"></i> 关节控制</h3>
+                    <div class="joint-controls">
+                        <div class="joint-item" data-joint="0">
+                            <div class="joint-header">
+                                <span class="joint-name">J1</span>
+                                <span class="joint-angle" id="j1-angle">0.00°</span>
+                            </div>
+                            <div class="joint-slider">
+                                <input type="range" id="j1-slider" min="-170" max="170" value="0" step="0.1">
+                            </div>
+                            <div class="joint-buttons">
+                                <button class="btn-jog" data-joint="0" data-direction="-1">-0.1°</button>
+                                <button class="btn-jog" data-joint="0" data-direction="1">+0.1°</button>
+                            </div>
+                        </div>
+
+                        <div class="joint-item" data-joint="1">
+                            <div class="joint-header">
+                                <span class="joint-name">J2</span>
+                                <span class="joint-angle" id="j2-angle">0.00°</span>
+                            </div>
+                            <div class="joint-slider">
+                                <input type="range" id="j2-slider" min="-130" max="130" value="0" step="0.1">
+                            </div>
+                            <div class="joint-buttons">
+                                <button class="btn-jog" data-joint="1" data-direction="-1">-0.1°</button>
+                                <button class="btn-jog" data-joint="1" data-direction="1">+0.1°</button>
+                            </div>
+                        </div>
+
+                        <div class="joint-item" data-joint="2">
+                            <div class="joint-header">
+                                <span class="joint-name">J3</span>
+                                <span class="joint-angle" id="j3-angle">0.00°</span>
+                            </div>
+                            <div class="joint-slider">
+                                <input type="range" id="j3-slider" min="-170" max="170" value="0" step="0.1">
+                            </div>
+                            <div class="joint-buttons">
+                                <button class="btn-jog" data-joint="2" data-direction="-1">-0.1°</button>
+                                <button class="btn-jog" data-joint="2" data-direction="1">+0.1°</button>
+                            </div>
+                        </div>
+
+                        <div class="joint-item" data-joint="3">
+                            <div class="joint-header">
+                                <span class="joint-name">J4</span>
+                                <span class="joint-angle" id="j4-angle">0.00°</span>
+                            </div>
+                            <div class="joint-slider">
+                                <input type="range" id="j4-slider" min="-175" max="175" value="0" step="0.1">
+                            </div>
+                            <div class="joint-buttons">
+                                <button class="btn-jog" data-joint="3" data-direction="-1">-0.1°</button>
+                                <button class="btn-jog" data-joint="3" data-direction="1">+0.1°</button>
+                            </div>
+                        </div>
+
+                        <div class="joint-item" data-joint="4">
+                            <div class="joint-header">
+                                <span class="joint-name">J5</span>
+                                <span class="joint-angle" id="j5-angle">0.00°</span>
+                            </div>
+                            <div class="joint-slider">
+                                <input type="range" id="j5-slider" min="-130" max="130" value="0" step="0.1">
+                            </div>
+                            <div class="joint-buttons">
+                                <button class="btn-jog" data-joint="4" data-direction="-1">-0.1°</button>
+                                <button class="btn-jog" data-joint="4" data-direction="1">+0.1°</button>
+                            </div>
+                        </div>
+
+                        <div class="joint-item" data-joint="5">
+                            <div class="joint-header">
+                                <span class="joint-name">J6</span>
+                                <span class="joint-angle" id="j6-angle">0.00°</span>
+                            </div>
+                            <div class="joint-slider">
+                                <input type="range" id="j6-slider" min="-360" max="360" value="0" step="0.1">
+                            </div>
+                            <div class="joint-buttons">
+                                <button class="btn-jog" data-joint="5" data-direction="-1">-0.1°</button>
+                                <button class="btn-jog" data-joint="5" data-direction="1">+0.1°</button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 笛卡尔控制区 -->
+                <section class="cartesian-control">
+                    <h3><i class="fas fa-arrows-alt"></i> 笛卡尔控制</h3>
+                    <div class="cartesian-inputs">
+                        <div class="input-group">
+                            <label for="cart-x">X (mm):</label>
+                            <input type="number" id="cart-x" step="0.1" value="0">
+                            <button class="btn-move" data-axis="x" data-dir="-10">-10</button>
+                            <button class="btn-move" data-axis="x" data-dir="10">+10</button>
+                        </div>
+                        <div class="input-group">
+                            <label for="cart-y">Y (mm):</label>
+                            <input type="number" id="cart-y" step="0.1" value="0">
+                            <button class="btn-move" data-axis="y" data-dir="-10">-10</button>
+                            <button class="btn-move" data-axis="y" data-dir="10">+10</button>
+                        </div>
+                        <div class="input-group">
+                            <label for="cart-z">Z (mm):</label>
+                            <input type="number" id="cart-z" step="0.1" value="0">
+                            <button class="btn-move" data-axis="z" data-dir="-10">-10</button>
+                            <button class="btn-move" data-axis="z" data-dir="10">+10</button>
+                        </div>
+                        <div class="input-group">
+                            <label for="cart-rx">Rx (°):</label>
+                            <input type="number" id="cart-rx" step="0.1" value="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="cart-ry">Ry (°):</label>
+                            <input type="number" id="cart-ry" step="0.1" value="0">
+                        </div>
+                        <div class="input-group">
+                            <label for="cart-rz">Rz (°):</label>
+                            <input type="number" id="cart-rz" step="0.1" value="0">
+                        </div>
+                    </div>
+                    <button id="btn-cartesian-move" class="btn btn-primary">
+                        <i class="fas fa-location-arrow"></i> 移动到目标点
+                    </button>
+                </section>
+
+                <!-- 智能书写区 -->
+                <section class="handwriting-control">
+                    <h3><i class="fas fa-pen-fancy"></i> 智能书写</h3>
+                    <div class="handwriting-inputs">
+                        <div class="input-group">
+                            <label for="write-text">书写文本:</label>
+                            <input type="text" id="write-text" placeholder="请输入要书写的文本" value="SEU2025">
+                        </div>
+                        <div class="input-row">
+                            <div class="input-group">
+                                <label for="font-size">字号 (mm):</label>
+                                <input type="number" id="font-size" value="20" min="5" max="50">
+                            </div>
+                            <div class="input-group">
+                                <label for="write-speed">速度 (mm/s):</label>
+                                <input type="number" id="write-speed" value="20" min="5" max="100">
+                            </div>
+                        </div>
+                    </div>
+                    <button id="btn-handwriting-start" class="btn btn-success">
+                        <i class="fas fa-play"></i> 开始书写
+                    </button>
+                </section>
+            </div>
+
+            <!-- 右侧监控面板 -->
+            <div class="monitor-panel">
+                <!-- 3D可视化 -->
+                <section class="visualization">
+                    <h3><i class="fas fa-cube"></i> 3D可视化</h3>
+                    <div id="robot-3d-view" class="robot-3d-container">
+                        <canvas id="robot-canvas"></canvas>
+                        <div class="view-controls">
+                            <button id="view-front" class="btn-view">正视</button>
+                            <button id="view-top" class="btn-view">俯视</button>
+                            <button id="view-side" class="btn-view">侧视</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 状态监控 -->
+                <section class="status-monitor">
+                    <h3><i class="fas fa-tachometer-alt"></i> 状态监控</h3>
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <span class="label">末端X:</span>
+                            <span class="value" id="ee-x">0.00</span>
+                            <span class="unit">mm</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">末端Y:</span>
+                            <span class="value" id="ee-y">0.00</span>
+                            <span class="unit">mm</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">末端Z:</span>
+                            <span class="value" id="ee-z">0.00</span>
+                            <span class="unit">mm</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="label">通信频率:</span>
+                            <span class="value" id="comm-freq">0</span>
+                            <span class="unit">Hz</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 系统日志 -->
+                <section class="system-log">
+                    <h3><i class="fas fa-file-alt"></i> 系统日志</h3>
+                    <div id="log-container" class="log-container">
+                        <div class="log-entry info">系统初始化完成</div>
+                        <div class="log-entry success">WebSocket连接已建立</div>
+                    </div>
+                </section>
+            </div>
+        </main>
+
+        <!-- 模态对话框 -->
+        <div id="modal-overlay" class="modal-overlay hidden">
+            <div class="modal-dialog">
+                <div class="modal-header">
+                    <h3 id="modal-title">提示</h3>
+                    <button id="modal-close" class="btn-close">&times;</button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <!-- 动态内容 -->
+                </div>
+                <div class="modal-footer">
+                    <button id="modal-confirm" class="btn btn-primary">确定</button>
+                    <button id="modal-cancel" class="btn btn-secondary">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 加载指示器 -->
+        <div id="loading-overlay" class="loading-overlay hidden">
+            <div class="loading-spinner">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>处理中...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+    
+    <!-- 应用脚本 -->
+    <script src="app.js"></script>
+</body>
+</html>

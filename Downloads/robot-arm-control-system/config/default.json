@@ -1,0 +1,96 @@
+{
+  "server": {
+    "port": 3000,
+    "host": "localhost",
+    "cors": {
+      "origin": "*",
+      "methods": ["GET", "POST"],
+      "credentials": true
+    }
+  },
+  
+  "robot": {
+    "model": "Estun-S3-60",
+    "dof": 6,
+    "communication": {
+      "type": "ethercat",
+      "cycleTime": 10,
+      "timeout": 1000,
+      "retryAttempts": 3
+    },
+    "limits": {
+      "joints": [
+        { "min": -2.97, "max": 2.97, "margin": 0.05 },
+        { "min": -2.27, "max": 2.27, "margin": 0.05 },
+        { "min": -2.97, "max": 2.97, "margin": 0.05 },
+        { "min": -3.05, "max": 3.05, "margin": 0.05 },
+        { "min": -2.27, "max": 2.27, "margin": 0.05 },
+        { "min": -6.28, "max": 6.28, "margin": 0.05 }
+      ],
+      "velocity": [2.0, 2.0, 2.0, 4.0, 4.0, 6.0],
+      "acceleration": [8.0, 8.0, 8.0, 16.0, 16.0, 24.0],
+      "workspace": {
+        "x": { "min": -400, "max": 400 },
+        "y": { "min": -400, "max": 400 },
+        "z": { "min": 0, "max": 600 }
+      }
+    },
+    "dhParameters": [
+      { "a": 0, "alpha": 0, "d": 0.267, "theta": 0 },
+      { "a": 0.29, "alpha": -1.5708, "d": 0, "theta": 0 },
+      { "a": 0, "alpha": 1.5708, "d": 0.342, "theta": 0 },
+      { "a": 0, "alpha": -1.5708, "d": 0, "theta": 0 },
+      { "a": 0, "alpha": 1.5708, "d": 0.342, "theta": 0 },
+      { "a": 0, "alpha": -1.5708, "d": 0, "theta": 0 }
+    ],
+    "homePosition": [0, 0, 1.5708, 0, 1.5708, 0]
+  },
+  
+  "handwriting": {
+    "defaultParams": {
+      "fontSize": 20,
+      "penUpHeight": 10,
+      "writeDepth": 0,
+      "charSpacing": 25,
+      "lineSpacing": 30,
+      "writeSpeed": 20,
+      "moveSpeed": 50
+    }
+  },
+  
+  "safety": {
+    "collisionThreshold": 15.0,
+    "collisionSensitivity": 0.8,
+    "emergencyStopDelay": 50,
+    "monitoringInterval": 50,
+    "maxVelocityOverride": 0.8,
+    "enableSoftLimits": true,
+    "enableCollisionDetection": true
+  },
+  
+  "logging": {
+    "level": "info",
+    "maxFiles": 10,
+    "maxSize": "10mb",
+    "console": true,
+    "files": {
+      "error": "logs/error.log",
+      "combined": "logs/combined.log",
+      "robot": "logs/robot.log",
+      "safety": "logs/safety.log",
+      "motion": "logs/motion.log",
+      "handwriting": "logs/handwriting.log"
+    }
+  },
+  
+  "ui": {
+    "updateRate": 100,
+    "3d": {
+      "antialias": true,
+      "shadows": true,
+      "gridSize": 800,
+      "gridDivisions": 20
+    },
+    "maxLogEntries": 100
+  }
+}
