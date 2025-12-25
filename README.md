@@ -365,9 +365,9 @@ socket.on('joint-move-success', (data) => {
 
 ## 📞 联系方式
 
-- **项目团队**: SEU Future Technology College
-- **指导教师**: [指导教师姓名]
-- **开发团队**: 关皓元、徐韵洁、侯强、洪灏维、王童曦、季书宝
+- **项目团队**: School of Future Technology, Southeast University, Nanjing, China
+- **指导教师**: 甘亚辉
+- **开发团队**: 关皓元、侯强、洪灏维、徐韵洁、季书宝、王童曦（corresponding author）
 
 ---
 
