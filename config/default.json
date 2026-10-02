@@ -1,15 +1,11 @@
 {
   "server": {
     "port": 3000,
-    "host": "localhost",
-    "cors": {
-      "origin": "*",
-      "methods": ["GET", "POST"],
-      "credentials": true
-    }
+    "host": "127.0.0.1"
   },
   
   "robot": {
+    "simulationOnly": true,
     "model": "Estun-S3-60",
     "dof": 6,
     "communication": {

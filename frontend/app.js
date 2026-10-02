@@ -66,14 +66,12 @@ class RobotControlApp {
     initWebSocket() {
         return new Promise((resolve, reject) => {
             try {
-                this.socket = io('http://localhost:3000', {
+                this.socket = io(window.location.origin, {
                     reconnectionDelay: 1000,
                     reconnection: true,
                     reconnectionAttempts: 10,
                     transports: ['websocket'],
-                    agent: false,
-                    upgrade: false,
-                    rejectUnauthorized: false
+                    upgrade: false
                 });
 
                 // 连接事件
@@ -109,7 +107,7 @@ class RobotControlApp {
 
                 // 操作反馈
                 this.socket.on('joint-move-success', (data) => {
-                    this.log(`关节 J${data.jointIndex + 1} 移动到 ${data.angle.toFixed(2)}°`, 'success');
+                    this.log(`关节 J${data.jointIndex + 1} 移动到 ${(data.angle * 180 / Math.PI).toFixed(2)}°`, 'success');
                 });
 
                 this.socket.on('cartesian-move-success', (data) => {
@@ -133,6 +131,7 @@ class RobotControlApp {
 
                 // 错误处理
                 this.socket.on('error', (data) => {
+                    this.hideLoading();
                     this.log(`错误: ${data.message}`, 'error');
                     this.showModal('操作失败', data.message);
                 });
@@ -525,7 +524,7 @@ class RobotControlApp {
         
         this.socket.emit('joint-move', {
             jointIndex,
-            angle,
+            angle: angle * Math.PI / 180,
             speed: 50
         });
     }
@@ -591,8 +590,7 @@ class RobotControlApp {
      * 安全复位
      */
     safetyReset() {
-        this.log('安全系统复位', 'info');
-        // 这里可以添加更多安全复位逻辑
+        this.showModal('急停保持锁定', '请先检查系统状态，再手动重启仿真服务。此按钮不会解除急停。');
     }
 
     /**

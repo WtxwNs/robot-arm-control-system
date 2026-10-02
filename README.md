@@ -1,5 +1,14 @@
 # 协作机器人智能书写控制系统
 
+> **当前版本仅支持离线仿真。实机初始化和运动已禁用，旧 Lua 驱动也不会启动硬件。**
+> 碰撞反馈、限速和轨迹验证尚未完成，本文原有性能/安全指标不是本次验证结果，不能作为实机安全保证。
+> 服务仅监听 127.0.0.1，不要通过反向代理、端口转发或公网暴露。急停保持锁定，检查后需手动重启仿真服务。
+> 关节控制和关节轨迹可用于仿真；笛卡尔书写轨迹执行尚未实现，会返回明确错误，不再报告虚假的完成。
+
+离线回归测试（所有网络、计时器和硬件接口均使用 mock）：`npm test`。
+依赖安装推荐使用锁文件：`npm ci --ignore-scripts`。原依赖中的 `ethercat` 包在 npm 注册表不可用，仿真不再依赖它。
+
+
 > 基于开放式上位机的协作机器人智能书写控制系统研究与实现
 > 
 > Collaborative Robot Intelligent Handwriting Control System
@@ -255,8 +264,6 @@ sudo nano /etc/ethercat.conf
 # 添加用户到ethercat组
 sudo usermod -a -G ethercat $USER
 
-# 或临时授权
-sudo chmod 666 /dev/EtherCAT0
 ```
 
 ## 🐛 故障排除

@@ -314,7 +314,12 @@ class MotionPlanner {
    */
   async executeTrajectory(robotController, trajectory, speed = 50) {
     const sampleTime = 0.01; // 10ms
-    
+    if (!Array.isArray(trajectory) || trajectory.length === 0 ||
+        trajectory.some(point => !point || !Array.isArray(point.position) ||
+          point.position.length !== 6 || !point.position.every(Number.isFinite))) {
+      throw new Error('Only six-joint trajectories are supported; Cartesian handwriting execution is not implemented');
+    }
+
     for (const point of trajectory) {
       if (point.position) {
         // 关节空间轨迹
