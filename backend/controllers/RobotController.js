@@ -9,7 +9,6 @@
  */
 
 const EventEmitter = require('events');
-const ethercat = require('ethercat');
 const math = require('mathjs');
 const winston = require('winston');
 
@@ -41,8 +40,9 @@ class RobotController extends EventEmitter {
     
     this.kinematics = new Kinematics(DH_PARAMS);
     this.ethercatMaster = null;
-    this.isConnected = false;
+    this.connected = false;
     this.isMoving = false;
+    this.emergencyStopped = false;
     
     // 当前关节角度 (弧度)
     this.currentJoints = [0, 0, 0, 0, 0, 0];
@@ -94,35 +94,15 @@ class RobotController extends EventEmitter {
    * 初始化EtherCAT通信
    */
   async initEtherCAT() {
-    try {
-      // 创建EtherCAT主站
-      this.ethercatMaster = new ethercat.Master();
-      
-      // 配置EtherCAT从站 (埃斯顿控制器)
-      const slaveConfig = {
-        alias: 0,
-        position: 0,
-        vendorId: 0x00000666,  // 埃斯顿厂商ID
-        productCode: 0x00000001
-      };
-      
-      await this.ethercatMaster.addSlave(slaveConfig);
-      
-      // 配置PDO映射
-      await this.configurePDOMapping();
-      
-      // 启动EtherCAT主站
-      await this.ethercatMaster.start();
-      
-      this.isConnected = true;
-      this.logger.info('EtherCAT communication established');
-      
-    } catch (error) {
-      // 如果EtherCAT初始化失败，使用模拟模式
-      this.logger.warn(`EtherCAT init failed, running in simulation mode: ${error.message}`);
-      this.isConnected = true; // 模拟模式下也标记为已连接
-      this.simulationMode = true;
-    }
+    // Physical operation is not yet validated; initialization must remain offline.
+    this.connected = true;
+    this.simulationMode = true;
+    this.logger.info('Simulation mode enabled; hardware motion is disabled');
+    return;
+  }
+
+  async initHardwareEtherCAT() {
+    throw new Error('Hardware initialization is disabled pending validated safety integration');
   }
 
   /**
@@ -156,7 +136,7 @@ class RobotController extends EventEmitter {
    */
   startControlLoop() {
     this.controlTimer = setInterval(async () => {
-      if (!this.isConnected) return;
+      if (!this.connected || this.emergencyStopped) return;
 
       try {
         if (this.simulationMode) {
@@ -178,6 +158,7 @@ class RobotController extends EventEmitter {
         
       } catch (error) {
         this.logger.error(`Control loop error: ${error.message}`);
+        this.emergencyStop();
       }
     }, this.cycleTime);
   }
@@ -258,6 +239,7 @@ class RobotController extends EventEmitter {
    * 关节空间运动
    */
   async moveJoint(jointIndex, targetAngle, speed = 50) {
+    this.assertMotionAllowed(speed);
     // 检查关节限位
     if (!this.checkJointLimits(jointIndex, targetAngle)) {
       throw new Error(`Joint ${jointIndex + 1} target angle ${targetAngle} exceeds limits`);
@@ -276,6 +258,10 @@ class RobotController extends EventEmitter {
    * 多关节同步运动
    */
   async moveJoints(targetJoints, speed = 50) {
+    this.assertMotionAllowed(speed);
+    if (!Array.isArray(targetJoints) || targetJoints.length !== 6) {
+      throw new Error('Exactly six finite joint angles are required');
+    }
     // 检查所有关节限位
     for (let i = 0; i < 6; i++) {
       if (!this.checkJointLimits(i, targetJoints[i])) {
@@ -295,6 +281,10 @@ class RobotController extends EventEmitter {
    * 笛卡尔空间运动
    */
   async moveToCartesian(x, y, z, rx = 0, ry = 0, rz = 0, speed = 50) {
+    this.assertMotionAllowed(speed);
+    if (![x, y, z, rx, ry, rz].every(Number.isFinite)) {
+      throw new Error('Cartesian coordinates must be finite numbers');
+    }
     const targetPose = { position: { x, y, z }, orientation: { rx, ry, rz } };
     
     // 逆运动学求解
@@ -314,6 +304,7 @@ class RobotController extends EventEmitter {
    * 检查关节限位
    */
   checkJointLimits(jointIndex, angle) {
+    if (!Number.isInteger(jointIndex) || jointIndex < 0 || jointIndex >= 6 || !Number.isFinite(angle)) return false;
     const limits = JOINT_LIMITS[jointIndex];
     return angle >= limits.min && angle <= limits.max;
   }
@@ -343,10 +334,21 @@ class RobotController extends EventEmitter {
   /**
    * 等待运动完成
    */
+  assertMotionAllowed(speed) {
+    if (!this.connected) throw new Error('Robot is not connected');
+    if (this.emergencyStopped) throw new Error('Emergency stop is latched; inspect the system before restarting');
+    if (!this.simulationMode) {
+      throw new Error('Hardware motion is disabled until verified safety feedback and speed control are implemented. Use simulation for offline development.');
+    }
+    if (this.isMoving) throw new Error('A motion is already in progress');
+    if (!Number.isFinite(speed) || speed <= 0 || speed > 100) throw new Error('Speed must be a finite number in (0, 100]');
+  }
+
   async waitForMovementComplete(timeout = 30000) {
     const startTime = Date.now();
     
     while (Date.now() - startTime < timeout) {
+      if (this.emergencyStopped) throw new Error('Movement interrupted by emergency stop');
       let allStopped = true;
       
       for (let i = 0; i < 6; i++) {
@@ -357,23 +359,27 @@ class RobotController extends EventEmitter {
         }
       }
       
-      if (allStopped) break;
+      if (allStopped) return;
       
       await new Promise(resolve => setTimeout(resolve, 10));
     }
+    this.emergencyStop();
+    throw new Error('Movement timed out');
   }
 
   /**
    * 紧急停止
    */
   emergencyStop() {
+    this.emergencyStopped = true;
     this.targetJoints = [...this.currentJoints];
     this.isMoving = false;
     
     if (!this.simulationMode && this.ethercatMaster) {
       // 发送停止指令到所有关节
       for (let i = 0; i < 6; i++) {
-        this.ethercatMaster.writeSDO(i, 0x6040, 0x00, 0x010F, 16); // 快速停止
+        Promise.resolve().then(() => this.ethercatMaster.writeSDO(i, 0x6040, 0x00, 0x010F, 16))
+          .catch(error => this.logger.error(`Emergency stop command failed: ${error.message}`));
       }
     }
     
@@ -398,7 +404,7 @@ class RobotController extends EventEmitter {
    * 是否已连接
    */
   isConnected() {
-    return this.isConnected;
+    return this.connected;
   }
 
   /**
@@ -417,7 +423,7 @@ class RobotController extends EventEmitter {
       await this.ethercatMaster.stop();
     }
     
-    this.isConnected = false;
+    this.connected = false;
     this.logger.info('Robot controller closed');
   }
 }

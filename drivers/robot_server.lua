@@ -233,7 +233,7 @@ function SocketServer:initialize()
     self.server:setoption("reuseaddr", true)
     
     -- 绑定端口
-    local result = self.server:bind("*", CONFIG.socket.port)
+    local result = self.server:bind("127.0.0.1", CONFIG.socket.port)
     if result ~= 1 then
         print("[Socket] 端口绑定失败")
         return false
@@ -558,8 +558,10 @@ function main()
     end
 end
 
--- 异常处理
-local success, err = pcall(main)
+-- This legacy driver is a reference only; physical safety integration is incomplete.
+local success, err = pcall(function()
+    error("Hardware driver disabled pending validated safety integration; use the Node.js simulator")
+end)
 if not success then
     print("[Main] 运行时错误: " .. tostring(err))
 end

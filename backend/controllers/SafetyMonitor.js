@@ -116,7 +116,7 @@ class SafetyMonitor extends EventEmitter {
       const safeMin = limit.min + limit.margin;
       const safeMax = limit.max - limit.margin;
 
-      if (joint < safeMin || joint > safeMax) {
+      if (!Number.isFinite(joint) || joint < safeMin || joint > safeMax) {
         violations.push({
           joint: i + 1,
           value: joint,
@@ -201,25 +201,9 @@ class SafetyMonitor extends EventEmitter {
    * 检查碰撞
    */
   checkCollision() {
-    // 在实际系统中，这里会读取电机电流或力矩传感器
-    // 模拟碰撞检测
-    const collisionProbability = Math.random() * 0.001; // 0.1% 概率
-    
-    if (collisionProbability > 0.0005) {
-      this.safetyStatus.collisionDetected = true;
-      this.logger.warn('Collision detected!');
-      
-      this.triggerEmergencyStop('Collision detected');
-      
-      this.emit('collision', {
-        timestamp: Date.now(),
-        severity: 'high'
-      });
-      
-      return true;
-    }
-
-    return false;
+    if (this.robotController.simulationMode) return false;
+    // Never substitute random values for real safety feedback.
+    throw new Error('Collision monitoring requires verified hardware telemetry');
   }
 
   /**
@@ -229,7 +213,7 @@ class SafetyMonitor extends EventEmitter {
     this.logger.warn(`Protective stop triggered: ${reason}`);
     
     // 平滑停止
-    this.robotController.targetJoints = [...this.robotController.currentJoints];
+    this.robotController.emergencyStop();
     
     this.emit('protective-stop', {
       reason: reason,
@@ -276,9 +260,14 @@ class SafetyMonitor extends EventEmitter {
   /**
    * 获取安全状态
    */
+  isActive() {
+    return this.safetyStatus.isActive;
+  }
+
   getStatus() {
     return {
       ...this.safetyStatus,
+      emergencyStopped: this.robotController.emergencyStopped || this.safetyStatus.emergencyStopped,
       robotConnected: this.robotController.isConnected(),
       currentJoints: this.robotController.getCurrentJoints(),
       endEffectorPose: this.robotController.getEndEffectorPose()

@@ -9,7 +9,7 @@
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const cors = require('cors');
+const { isLocalRequest } = require('./requestPolicy');
 const path = require('path');
 const winston = require('winston');
 const config = require('config');
@@ -40,22 +40,23 @@ class RobotControlServer {
     this.app = express();
     this.server = http.createServer(this.app);
     this.io = socketIo(this.server, {
-      cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
-      }
+      allowRequest: (request, callback) => callback(null, isLocalRequest(request)),
+      maxHttpBufferSize: 100000
     });
 
     this.setupMiddleware();
     this.setupRoutes();
-    this.initializeControllers();
+    this.ready = this.initializeControllers();
     this.setupSocketHandlers();
-    this.setupSafetySystems();
+
   }
 
   setupMiddleware() {
-    this.app.use(cors());
-    this.app.use(express.json());
+    this.app.use((req, res, next) => {
+      if (!isLocalRequest(req)) return res.status(403).json({ error: 'Local same-origin requests only' });
+      next();
+    });
+    this.app.use(express.json({ limit: '100kb' }));
     this.app.use(express.static(path.join(__dirname, '../frontend')));
   }
 
@@ -66,7 +67,9 @@ class RobotControlServer {
         status: 'running',
         timestamp: new Date().toISOString(),
         robotConnected: this.robotController?.isConnected() || false,
-        safetyActive: this.safetyMonitor?.isActive() || false
+        safetyActive: this.safetyMonitor?.isActive() || false,
+        simulationMode: this.robotController?.simulationMode === true,
+        hardwareMotionEnabled: false
       });
     });
 
@@ -91,9 +94,11 @@ class RobotControlServer {
       // 初始化智能书写引擎
       this.handwritingEngine = new HandwritingEngine();
 
-      logger.info('All controllers initialized successfully');
+      this.setupSafetySystems();
+      logger.info('All controllers initialized successfully (simulation only)');
     } catch (error) {
       logger.error(`Failed to initialize controllers: ${error.message}`);
+      throw error;
     }
   }
 
@@ -103,6 +108,8 @@ class RobotControlServer {
 
       // 发送初始状态
       socket.emit('system-status', {
+        simulationMode: this.robotController?.simulationMode === true,
+        hardwareMotionEnabled: false,
         robotConnected: this.robotController?.isConnected() || false,
         joints: this.robotController?.getCurrentJoints() || [0, 0, 0, 0, 0, 0],
         endEffector: this.robotController?.getEndEffectorPose() || { x: 0, y: 0, z: 0, rx: 0, ry: 0, rz: 0 }
@@ -136,6 +143,7 @@ class RobotControlServer {
       socket.on('home-reset', async (data) => {
         try {
           const { speed = 30 } = data;
+          this.robotController.assertMotionAllowed(speed);
           await this.motionPlanner.executeHoming(this.robotController, speed);
           socket.emit('home-reset-success');
         } catch (error) {
@@ -148,7 +156,12 @@ class RobotControlServer {
       socket.on('handwriting-start', async (data) => {
         try {
           const { text, fontSize = 20, speed = 20 } = data;
-          const trajectory = this.handwritingEngine.generateTrajectory(text, fontSize);
+          this.robotController.assertMotionAllowed(speed);
+          if (typeof text !== 'string' || !text.trim() || text.length > 200 ||
+              !Number.isFinite(fontSize) || fontSize <= 0 || fontSize > 100) {
+            throw new Error('Handwriting requires 1-200 characters and fontSize in (0, 100]');
+          }
+          const trajectory = this.handwritingEngine.generateTrajectory(text, { fontSize });
           await this.motionPlanner.executeTrajectory(this.robotController, trajectory, speed);
           socket.emit('handwriting-complete');
         } catch (error) {
@@ -182,7 +195,7 @@ class RobotControlServer {
 
   setupSafetySystems() {
     // 设置周期性状态广播
-    setInterval(() => {
+    this.statusTimer = setInterval(() => {
       if (this.robotController && this.safetyMonitor) {
         const status = {
           joints: this.robotController.getCurrentJoints(),
@@ -194,12 +207,7 @@ class RobotControlServer {
       }
     }, 100); // 100Hz 更新频率
 
-    // 安全监控循环
-    setInterval(() => {
-      if (this.safetyMonitor) {
-        this.safetyMonitor.checkLimits();
-      }
-    }, 50); // 20Hz 安全检查
+    // SafetyMonitor owns its monitoring loop; do not create a second loop.
   }
 
   handleEmergencyStop() {
@@ -210,8 +218,9 @@ class RobotControlServer {
     this.io.emit('emergency-stop-activated');
   }
 
-  start(port = 3000) {
-    this.server.listen(port, () => {
+  async start(port = 3000) {
+    await this.ready;
+    this.server.listen(port, '127.0.0.1', () => {
       logger.info(`Robot Control Server running on port ${port}`);
       console.log(`🤖 Robot Control Server Started`);
       console.log(`📡 WebSocket Server: ws://localhost:${port}`);
@@ -223,7 +232,10 @@ class RobotControlServer {
 // 启动服务器
 if (require.main === module) {
   const server = new RobotControlServer();
-  server.start(process.env.PORT || 3000);
+  server.start(Number(process.env.PORT || 3000)).catch(error => {
+    logger.error(`Server startup failed: ${error.message}`);
+    process.exitCode = 1;
+  });
 }
 
 module.exports = RobotControlServer;

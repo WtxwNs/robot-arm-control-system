@@ -92,8 +92,6 @@ check_ethercat_permissions() {
             echo -e "${YELLOW}请运行以下命令添加权限:${NC}"
             echo -e "${BLUE}sudo usermod -a -G ethercat $USER${NC}"
             echo -e "${YELLOW}然后重新登录系统${NC}"
-            echo -e "${YELLOW}或使用以下命令临时授权:${NC}"
-            echo -e "${BLUE}sudo chmod 666 /dev/EtherCAT0${NC}"
         else
             echo -e "${GREEN}✓ EtherCAT权限正常${NC}"
         fi
